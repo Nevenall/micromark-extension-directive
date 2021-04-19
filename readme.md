@@ -148,11 +148,11 @@ He dies.
 The `name` part is required.  The first character must be a letter, other
 characters can be alphanumerical and `-`.
 
-The `[label]` part is optional (`:x` and `:x[]` are equivalent).
+The `[label]` part is optional (`:x` and `:x[]` are equivalent)†.
 When used, it can include text constructs such as emphasis and so on: `x[a *b*
 c]`.
 
-The `{attributes}` part is optional (`:x` and `:x{}` are equivalent).
+The `{attributes}` part is optional (`:x` and `:x{}` are equivalent)†.
 When used, it is handled like HTML attributes, such as that `{a}`, `{a=""}`,
 , `{a=''}` but also `{a=b}`, `{a="b"}`, and `{a='b'}` are equivalent.
 Shortcuts are available for `id=` (`{#readme}` for `{id=readme}`) and
@@ -160,6 +160,11 @@ Shortcuts are available for `id=` (`{#readme}` for `{id=readme}`) and
 When multiple ids are found, the last is used; when multiple classes are found,
 they are combined: `{.red class=green .blue}` is equivalent to
 `{.red .green .blue}` and `{class="red green blue"}`.
+
+† there is one case where a name must be followed by an empty label or empty
+attributes: a *text* directive that only has a name, cannot be followed by a
+colon. So, `:red:` doesn’t work. Use either `:red[]` or `:red{}` instead.
+The reason for this is to allow GitHub emoji (gemoji) and directives to coexist.
 
 Containers can be nested by using more colons outside:
 
@@ -188,8 +193,6 @@ this implementation mimics CommonMark as closely as possible:
     label (~~`:a []`~~), name and attributes (~~`:a {}`~~), or label and
     attributes (~~`:a[] {}`~~) — because it’s not allowed in links either
     (~~`[] ()`~~)
-*   Only escaped brackets are allow in the label (~~`:a[b[c]d]`~~) — because
-    links in links are not allowed either
 *   No trailing colons allowed on the opening fence of a container
     (~~`:::a:::`~~) — because it’s not allowed in fenced code either
 *   The label and attributes in a leaf or container cannot include line endings
@@ -224,9 +227,9 @@ abide by its terms.
 
 <!-- Definitions -->
 
-[build-badge]: https://img.shields.io/travis/micromark/micromark-extension-directive.svg
+[build-badge]: https://github.com/micromark/micromark-extension-directive/workflows/main/badge.svg
 
-[build]: https://travis-ci.org/micromark/micromark-extension-directive
+[build]: https://github.com/micromark/micromark-extension-directive/actions
 
 [coverage-badge]: https://img.shields.io/codecov/c/github/micromark/micromark-extension-directive.svg
 
@@ -248,7 +251,7 @@ abide by its terms.
 
 [chat-badge]: https://img.shields.io/badge/chat-discussions-success.svg
 
-[chat]: https://github.com/micromark/unist/discussions
+[chat]: https://github.com/micromark/micromark/discussions
 
 [npm]: https://docs.npmjs.com/cli/install
 

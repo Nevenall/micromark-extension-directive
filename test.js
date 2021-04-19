@@ -61,6 +61,12 @@ test('micromark-extension-directive (syntax)', function (t) {
     )
 
     t.equal(
+      micromark(':a:', options()),
+      '<p>:a:</p>',
+      'should *not* support a colon right after a name'
+    )
+
+    t.equal(
       micromark(':a[', options()),
       '<p>[</p>',
       'should support a name followed by an unclosed `[`'
@@ -112,6 +118,12 @@ test('micromark-extension-directive (syntax)', function (t) {
       micromark(':a[a *b* c]asd', options()),
       '<p>asd</p>',
       'should support markdown in an label'
+    )
+
+    t.equal(
+      micromark('a :b[c :d[e] f] g', options()),
+      '<p>a  g</p>',
+      'should support a directive in an label'
     )
 
     t.equal(
@@ -1020,6 +1032,30 @@ test('micromark-extension-directive (syntax)', function (t) {
       'should support a thematic break before a container'
     )
 
+    t.equal(
+      micromark(' :::x\n ', options({'*': h})),
+      '<x></x>',
+      'should support prefixed containers (1)'
+    )
+
+    t.equal(
+      micromark(' :::x\n - a', options({'*': h})),
+      '<x>\n<ul>\n<li>a</li>\n</ul>\n</x>',
+      'should support prefixed containers (2)'
+    )
+
+    t.equal(
+      micromark(' :::x\n - a\n > b', options({'*': h})),
+      '<x>\n<ul>\n<li>a</li>\n</ul>\n<blockquote>\n<p>b</p>\n</blockquote>\n</x>',
+      'should support prefixed containers (3)'
+    )
+
+    t.equal(
+      micromark(' :::x\n - a\n > b\n :::', options({'*': h})),
+      '<x>\n<ul>\n<li>a</li>\n</ul>\n<blockquote>\n<p>b</p>\n</blockquote>\n</x>',
+      'should support prefixed containers (4)'
+    )
+
     t.end()
   })
 
@@ -1096,6 +1132,12 @@ test('micromark-extension-directive (compile)', function (t) {
     'should support fall through directives (`*`)'
   )
 
+  t.equal(
+    micromark(':a[:img{src="x" alt=y}]{href="z"}', options({'*': h})),
+    '<p><a href="z"><img src="x" alt="y"></a></p>',
+    'should support fall through directives (`*`)'
+  )
+
   t.end()
 })
 
@@ -1110,6 +1152,24 @@ test('content', function (t) {
     micromark(':abbr[x\\[y\\]z]', options({abbr: abbr})),
     '<p><abbr>x[y]z</abbr></p>',
     'should support escaped brackets in a label'
+  )
+
+  t.equal(
+    micromark(':abbr[x[y]z]', options({abbr: abbr})),
+    '<p><abbr>x[y]z</abbr></p>',
+    'should support balanced brackets in a label'
+  )
+
+  t.equal(
+    micromark(':abbr[a[b[c[d]e]f]g]h', options({abbr: abbr})),
+    '<p><abbr>a[b[c[d]e]f]g</abbr>h</p>',
+    'should support balanced brackets in a label, three levels deep'
+  )
+
+  t.equal(
+    micromark(':abbr[a[b[c[d[e]f]g]h]i]j', options({abbr: abbr})),
+    '<p><abbr></abbr>[a[b[c[d[e]f]g]h]i]j</p>',
+    'should *not* support balanced brackets in a label, four levels deep'
   )
 
   t.equal(
@@ -1236,6 +1296,24 @@ test('content', function (t) {
     micromark(':::div{.big}\n:b[Text]', options({'*': h})),
     '<div class="big">\n<p><b>Text</b></p>\n</div>',
     'should support text directives in container directives'
+  )
+
+  t.equal(
+    micromark(':::section\n* a\n:::', options({'*': h})),
+    '<section>\n<ul>\n<li>a</li>\n</ul>\n</section>',
+    'should support lists in container directives'
+  )
+
+  t.equal(
+    micromark(':::section[]\n* a\n:::', options({'*': h})),
+    '<section>\n<ul>\n<li>a</li>\n</ul>\n</section>',
+    'should support lists w/ label brackets in container directives'
+  )
+
+  t.equal(
+    micromark(':::section{}\n* a\n:::', options({'*': h})),
+    '<section>\n<ul>\n<li>a</li>\n</ul>\n</section>',
+    'should support lists w/ attribute braces in container directives'
   )
 
   t.end()
