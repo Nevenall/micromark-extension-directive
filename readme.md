@@ -16,14 +16,17 @@ Generic directives solve the need for an infinite number of potential extensions
 to markdown in a single markdown-esque way.
 However, it’s just [a proposal][prop] and may never be specced.
 
-This package provides the low-level modules for integrating with the micromark
-tokenizer and the micromark HTML compiler.
+## When to use this
 
-You probably shouldn’t use the HTML parts of this package directly, but instead
-use [`mdast-util-directive`][mdast-util-directive] with **[mdast][]** or
-[`remark-directive`][remark-directive] with **[remark][]**
+If you’re using [`micromark`][micromark] or
+[`mdast-util-from-markdown`][from-markdown], use this package.
+Alternatively, if you’re using **[remark][]**, use
+[`remark-directive`][remark-directive].
 
 ## Install
+
+This package is [ESM only](https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c):
+Node 12+ is needed to use it and it must be `import`ed instead of `require`d.
 
 [npm][]:
 
@@ -42,19 +45,16 @@ A lovely language know as :abbr[HTML]{title="HyperText Markup Language"}.
 And our script, `example.js`, looks as follows:
 
 ```js
-var fs = require('fs')
-var micromark = require('micromark')
-var syntax = require('micromark-extension-directive')
-var html = require('micromark-extension-directive/html')
+import fs from 'node:fs'
+import {micromark} from 'micromark'
+import {directive, directiveHtml} from 'micromark-extension-directive'
 
-var doc = fs.readFileSync('example.md')
-
-var result = micromark(doc, {
-  extensions: [syntax()],
-  htmlExtensions: [html({abbr: abbr})]
+const output = micromark(fs.readFileSync('example.md'), {
+  extensions: [directive()],
+  htmlExtensions: [directiveHtml({abbr})]
 })
 
-console.log(result)
+console.log(output)
 
 function abbr(d) {
   if (d.type !== 'textDirective') return false
@@ -79,20 +79,21 @@ Now, running `node example` yields (abbreviated):
 
 ## API
 
-### `html(htmlOptions?)`
+This package exports the following identifiers: `directive`, `directiveHtml`.
+There is no default export.
 
-### `syntax(syntaxOptions?)`
+The export map supports the endorsed
+[`development` condition](https://nodejs.org/api/packages.html#packages_resolving_user_conditions).
+Run `node --conditions development module.js` to get instrumented dev code.
+Without this condition, production code is loaded.
 
-> Note: `syntax` is the default export of this module, `html` is available at
-> `micromark-extension-directive/html`.
+### `directive(syntaxOptions?)`
 
-Support the [generic directives proposal][prop].
-The export of `syntax` is a function that can be called with options and returns
-an extension for the micromark parser (to tokenize directives in text, flow,
-and as a container; can be passed in `extensions`).
-The export of `html` is a function that can be called with options and returns
-an extension for the default HTML compiler (to compile directives a certain way;
-can be passed in `htmlExtensions`).
+### `directiveHtml(htmlOptions?)`
+
+Functions that can be called with options to get an extension for micromark to
+parse directives (can be passed in `extensions`) and one to compile them to HTML
+(can be passed in `htmlExtensions`).
 
 ###### `syntaxOptions`
 
@@ -100,7 +101,8 @@ None yet, but might be added in the future.
 
 ###### `htmlOptions`
 
-An object mapping names of directives to handlers ([`Object.<Handle>`][handle]).
+An object mapping names of directives to handlers
+([`Record<string, Handle>`][handle]).
 The special name `'*'` is the fallback to handle all unhandled directives.
 
 ### `function handle(directive)`
@@ -109,8 +111,8 @@ How to handle a `directive` ([`Directive`][directive]).
 
 ##### Returns
 
-`boolean` — `false` can be used to signal that the directive could not be
-handled, in which case the fallback is used (when given).
+`boolean` or `void` — `false` can be used to signal that the directive could not
+be handled, in which case the fallback is used (when given).
 
 ### `Directive`
 
@@ -118,12 +120,11 @@ An object representing a directive.
 
 ###### Fields
 
-*   `type` (`enum`, either `'textDirective'`, `'leafDirective'`, or
-    `'containerDirective'`)
+*   `type` (`'textDirective'|'leafDirective'|'containerDirective'`)
 *   `name` (`string`) — name of directive
-*   `label` (`string?`) — compiled HTML content in brackets
-*   `attributes` (`Object.<string>?`) — optional object w/ HTML attributes
-*   `content` (`string?`) — compiled HTML content when `container`
+*   `label` (`string?`) — compiled HTML content that was in `[brackets]`
+*   `attributes` (`Record<string, string>?`) — object w/ HTML attributes
+*   `content` (`string?`) — compiled HTML content inside container directive
 
 ## Syntax
 
@@ -147,7 +148,7 @@ He dies.
 
 The `name` part is required.  The first character must be a letter, other
 characters can be alphanumerical, `-`, and `_`.
-`_` cannot end a name.
+`-` or `_` cannot end a name.
 
 The `[label]` part is optional (`:x` and `:x[]` are equivalent)†.
 When used, it can include text constructs such as emphasis and so on: `x[a *b*
@@ -203,6 +204,8 @@ this implementation mimics CommonMark as closely as possible:
 
 *   [`remarkjs/remark`][remark]
     — markdown processor powered by plugins
+*   [`remarkjs/remark-directive`][remark-directive]
+    — remark plugin using this to support directive
 *   [`micromark/micromark`][micromark]
     — the smallest commonmark-compliant markdown parser that exists
 *   [`syntax-tree/mdast-util-directive`][mdast-util-directive]
@@ -273,8 +276,6 @@ abide by its terms.
 [to-markdown]: https://github.com/syntax-tree/mdast-util-to-markdown
 
 [remark]: https://github.com/remarkjs/remark
-
-[mdast]: https://github.com/syntax-tree/mdast
 
 [prop]: https://talk.commonmark.org/t/generic-directives-plugins-syntax/444
 

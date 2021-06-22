@@ -1,11 +1,17 @@
-var test = require('tape')
-var micromark = require('micromark/lib')
-var voids = require('html-void-elements')
-var syntax = require('.')
-var html = require('./html')
+/**
+ * @typedef {import('../dev/index.js').HtmlOptions} HtmlOptions
+ * @typedef {import('../dev/index.js').Handle} Handle
+ */
 
-test('micromark-extension-directive (syntax)', function (t) {
-  t.test('text', function (t) {
+import test from 'tape'
+import {micromark} from 'micromark'
+import {htmlVoidElements} from 'html-void-elements'
+import {directive as syntax, directiveHtml as html} from '../dev/index.js'
+
+const own = {}.hasOwnProperty
+
+test('micromark-extension-directive (syntax)', (t) => {
+  t.test('text', (t) => {
     t.equal(
       micromark('\\:a', options()),
       '<p>:a</p>',
@@ -61,9 +67,15 @@ test('micromark-extension-directive (syntax)', function (t) {
     )
 
     t.equal(
-      micromark(':a-', options()),
+      micromark(':a-b', options()),
       '<p></p>',
       'should support a dash in a name'
+    )
+
+    t.equal(
+      micromark(':a-', options()),
+      '<p>:a-</p>',
+      'should *not* support a dash at the end of a name'
     )
 
     t.equal(
@@ -363,7 +375,7 @@ test('micromark-extension-directive (syntax)', function (t) {
     t.end()
   })
 
-  t.test('leaf', function (t) {
+  t.test('leaf', (t) => {
     t.equal(micromark('::b', options()), '', 'should support a directive')
 
     t.equal(
@@ -402,7 +414,11 @@ test('micromark-extension-directive (syntax)', function (t) {
       'should support a digit in a name'
     )
 
-    t.equal(micromark('::a-', options()), '', 'should support a dash in a name')
+    t.equal(
+      micromark('::a-b', options()),
+      '',
+      'should support a dash in a name'
+    )
 
     t.equal(
       micromark('::a[', options()),
@@ -694,10 +710,22 @@ test('micromark-extension-directive (syntax)', function (t) {
       'should support a thematic break before a leaf'
     )
 
+    t.equal(
+      micromark('> ::a\nb', options({'*': h})),
+      '<blockquote><a></a>\n</blockquote>\n<p>b</p>',
+      'should not support lazyness (1)'
+    )
+
+    t.equal(
+      micromark('> a\n::b', options({'*': h})),
+      '<blockquote>\n<p>a</p>\n</blockquote>\n<b></b>',
+      'should not support lazyness (2)'
+    )
+
     t.end()
   })
 
-  t.test('container', function (t) {
+  t.test('container', (t) => {
     t.equal(micromark(':::b', options()), '', 'should support a directive')
 
     t.equal(
@@ -743,7 +771,7 @@ test('micromark-extension-directive (syntax)', function (t) {
     )
 
     t.equal(
-      micromark(':::a-', options()),
+      micromark(':::a-b', options()),
       '',
       'should support a dash in a name'
     )
@@ -1098,13 +1126,37 @@ test('micromark-extension-directive (syntax)', function (t) {
       'should support prefixed containers (4)'
     )
 
+    t.equal(
+      micromark('> :::a\nb', options({'*': h})),
+      '<blockquote><a></a>\n</blockquote>\n<p>b</p>',
+      'should not support lazyness (1)'
+    )
+
+    t.equal(
+      micromark('> :::a\n> b\nc', options({'*': h})),
+      '<blockquote><a>\n<p>b</p>\n</a>\n</blockquote>\n<p>c</p>',
+      'should not support lazyness (2)'
+    )
+
+    t.equal(
+      micromark('> a\n:::b', options({'*': h})),
+      '<blockquote>\n<p>a</p>\n</blockquote>\n<b></b>',
+      'should not support lazyness (3)'
+    )
+
+    t.equal(
+      micromark('> :::a\n:::', options({'*': h})),
+      '<blockquote><a></a>\n</blockquote>\n<p>:::</p>',
+      'should not support lazyness (4)'
+    )
+
     t.end()
   })
 
   t.end()
 })
 
-test('micromark-extension-directive (compile)', function (t) {
+test('micromark-extension-directive (compile)', (t) => {
   t.equal(
     micromark(
       [
@@ -1113,7 +1165,7 @@ test('micromark-extension-directive (compile)', function (t) {
         ':abbr{title="HyperText Markup Language"}',
         ':abbr[HTML]{title="HyperText Markup Language"}'
       ].join('\n\n'),
-      options({abbr: abbr})
+      options({abbr})
     ),
     [
       '<p><abbr></abbr></p>',
@@ -1143,7 +1195,7 @@ test('micromark-extension-directive (compile)', function (t) {
         ':::youtube{v=5}\ny\n:::',
         ':::youtube[Cat in a box f]{v=6}\nz\n:::'
       ].join('\n\n'),
-      options({youtube: youtube})
+      options({youtube})
     ),
     [
       '<p>Text:</p>',
@@ -1166,10 +1218,7 @@ test('micromark-extension-directive (compile)', function (t) {
   )
 
   t.equal(
-    micromark(
-      ':youtube[Cat in a box]\n:br',
-      options({youtube: youtube, '*': h})
-    ),
+    micromark(':youtube[Cat in a box]\n:br', options({youtube, '*': h})),
     '<p><youtube>Cat in a box</youtube>\n<br></p>',
     'should support fall through directives (`*`)'
   )
@@ -1183,75 +1232,75 @@ test('micromark-extension-directive (compile)', function (t) {
   t.end()
 })
 
-test('content', function (t) {
+test('content', (t) => {
   t.equal(
-    micromark(':abbr[x\\&y&amp;z]', options({abbr: abbr})),
+    micromark(':abbr[x\\&y&amp;z]', options({abbr})),
     '<p><abbr>x&amp;y&amp;z</abbr></p>',
     'should support character escapes and character references in label'
   )
 
   t.equal(
-    micromark(':abbr[x\\[y\\]z]', options({abbr: abbr})),
+    micromark(':abbr[x\\[y\\]z]', options({abbr})),
     '<p><abbr>x[y]z</abbr></p>',
     'should support escaped brackets in a label'
   )
 
   t.equal(
-    micromark(':abbr[x[y]z]', options({abbr: abbr})),
+    micromark(':abbr[x[y]z]', options({abbr})),
     '<p><abbr>x[y]z</abbr></p>',
     'should support balanced brackets in a label'
   )
 
   t.equal(
-    micromark(':abbr[a[b[c[d]e]f]g]h', options({abbr: abbr})),
+    micromark(':abbr[a[b[c[d]e]f]g]h', options({abbr})),
     '<p><abbr>a[b[c[d]e]f]g</abbr>h</p>',
     'should support balanced brackets in a label, three levels deep'
   )
 
   t.equal(
-    micromark(':abbr[a[b[c[d[e]f]g]h]i]j', options({abbr: abbr})),
+    micromark(':abbr[a[b[c[d[e]f]g]h]i]j', options({abbr})),
     '<p><abbr></abbr>[a[b[c[d[e]f]g]h]i]j</p>',
     'should *not* support balanced brackets in a label, four levels deep'
   )
 
   t.equal(
-    micromark(':abbr[a\nb\rc]', options({abbr: abbr})),
+    micromark(':abbr[a\nb\rc]', options({abbr})),
     '<p><abbr>a\nb\rc</abbr></p>',
     'should support EOLs in a label'
   )
 
   t.equal(
-    micromark(':abbr[\na\r]', options({abbr: abbr})),
+    micromark(':abbr[\na\r]', options({abbr})),
     '<p><abbr>\na\r</abbr></p>',
     'should support EOLs at the edges of a label'
   )
 
   t.equal(
-    micromark(':abbr[a *b* **c** d]', options({abbr: abbr})),
+    micromark(':abbr[a *b* **c** d]', options({abbr})),
     '<p><abbr>a <em>b</em> <strong>c</strong> d</abbr></p>',
     'should support markdown in a label'
   )
 
   t.equal(
-    micromark(':abbr{title=a&apos;b}', options({abbr: abbr})),
+    micromark(':abbr{title=a&apos;b}', options({abbr})),
     '<p><abbr title="a\'b"></abbr></p>',
     'should support character references in unquoted attribute values'
   )
 
   t.equal(
-    micromark(':abbr{title="a&apos;b"}', options({abbr: abbr})),
+    micromark(':abbr{title="a&apos;b"}', options({abbr})),
     '<p><abbr title="a\'b"></abbr></p>',
     'should support character references in double attribute values'
   )
 
   t.equal(
-    micromark(":abbr{title='a&apos;b'}", options({abbr: abbr})),
+    micromark(":abbr{title='a&apos;b'}", options({abbr})),
     '<p><abbr title="a\'b"></abbr></p>',
     'should support character references in single attribute values'
   )
 
   t.equal(
-    micromark(':abbr{title="a&somethingelse;b"}', options({abbr: abbr})),
+    micromark(':abbr{title="a&somethingelse;b"}', options({abbr})),
     '<p><abbr title="a&amp;somethingelse;b"></abbr></p>',
     'should support unknown character references in attribute values'
   )
@@ -1358,9 +1407,16 @@ test('content', function (t) {
     'should support lists w/ attribute braces in container directives'
   )
 
+  t.equal(
+    micromark(':::i\n- +\na', options()),
+    '',
+    'should support lazy containers in an unclosed container directive'
+  )
+
   t.end()
 })
 
+/** @type {Handle} */
 function abbr(d) {
   if (d.type !== 'textDirective') return false
 
@@ -1375,15 +1431,16 @@ function abbr(d) {
   this.tag('</abbr>')
 }
 
+/** @type {Handle} */
 function youtube(d) {
-  var attrs = d.attributes || {}
-  var v = attrs.v
-  var list
-  var prop
+  const attrs = d.attributes || {}
+  const v = attrs.v
+  /** @type {string} */
+  let prop
 
   if (!v) return false
 
-  list = [
+  const list = [
     'src="https://www.youtube.com/embed/' + this.encode(v) + '"',
     'allowfullscreen'
   ]
@@ -1409,18 +1466,23 @@ function youtube(d) {
   this.tag('</iframe>')
 }
 
+/** @type {Handle} */
 function h(d) {
-  var content = d.content || d.label
-  var attrs = d.attributes || {}
-  var list = []
-  var prop
+  const content = d.content || d.label
+  const attrs = d.attributes || {}
+  /** @type {Array.<string>} */
+  const list = []
+  /** @type {string} */
+  let prop
 
   for (prop in attrs) {
-    list.push(this.encode(prop) + '="' + this.encode(attrs[prop]) + '"')
+    if (own.call(attrs, prop)) {
+      list.push(this.encode(prop) + '="' + this.encode(attrs[prop]) + '"')
+    }
   }
 
   this.tag('<' + d.name)
-  if (list.length) this.tag(' ' + list.join(' '))
+  if (list.length > 0) this.tag(' ' + list.join(' '))
   this.tag('>')
 
   if (content) {
@@ -1429,9 +1491,12 @@ function h(d) {
     if (d.type === 'containerDirective') this.lineEndingIfNeeded()
   }
 
-  if (!voids.includes(d.name)) this.tag('</' + d.name + '>')
+  if (!htmlVoidElements.includes(d.name)) this.tag('</' + d.name + '>')
 }
 
+/**
+ * @param {HtmlOptions} [options]
+ */
 function options(options) {
   return {
     allowDangerousHtml: true,
